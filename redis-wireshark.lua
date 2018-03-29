@@ -100,15 +100,19 @@ do -- scope
 
                 child:add(f.value, '<null>')
             else
+                if buffer:len() < offset + bytes then
+                    pktinfo.desegment_len = DESEGMENT_ONE_MORE_SEGMENT
+                    return buffer:len() - (offset + bytes)
+                end
                 local child = root:add(proto, buffer(offset, length + CRLF + bytes + CRLF), 'Redis Response')
+                child:add(buffer(offset, 1 + text:len() + CRLF), 'Length: ' .. bytes)
 
-                offset = offset + length + CRLF
+                offset = offset + 1 + text:len() + CRLF
 
                 -- get the string contained within this bulk message
                 local line = matches()
-                local length = line:len()
-                child:add(f.value, buffer(offset, length))
-                offset = offset + length + CRLF
+                child:add(f.value, buffer(offset, bytes))
+                offset = offset + bytes + CRLF
             end
 
             pktinfo.cols.info:set("Redis Response")
@@ -141,6 +145,9 @@ do -- scope
         local offset = 0
         while offset < tvbuf():len() do
             offset = recurse(root, tvbuf, pktinfo, offset, matches)
+            if offset < 0 then
+                return offset
+            end
         end
 
         -- check that we consumed exactly the right number of bytes
