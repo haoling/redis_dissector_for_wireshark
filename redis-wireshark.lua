@@ -70,7 +70,6 @@ do -- scope
             end
 
             command = table.concat(d, " ")
-            io.write(command.."\n")
 
             local child = root:add(proto, buffer(offset, length + CRLF + bytes), 'Redis Request')
             offset = offset + length + CRLF
@@ -82,15 +81,10 @@ do -- scope
                 offset = recurse(child, buffer, pktinfo, offset, matches)
             end
 
-            io.write("-----\n")
-            
             pktinfo.cols.info:set("Redis Request")
             pktinfo.cols.info:append(" ".."\t--> ".."("..command..")")
 
         elseif prefix == '$' then -- bulk, contains one binary string
-
-            -- io.write("len: "..length.."   matches: "..line.."\n")
-
             local bytes = tonumber(text)
             
             if bytes == -1 then
@@ -122,8 +116,6 @@ do -- scope
             buf = buffer(offset + prefix:len(), length - prefix:len())
             child:add(f.value, buf)
             offset = offset + length + CRLF
-
-            io.write(buf:string().."\n")
 
             pktinfo.cols.info:set("Redis Response")
             pktinfo.cols.info:append(" ".."\t--> ".."("..buf:string()..")")
